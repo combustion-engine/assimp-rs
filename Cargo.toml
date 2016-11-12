@@ -1,0 +1,24 @@
+[package]
+authors = ["novacrazy <novacrazy@gmail.com>"]
+name = "assimp"
+version = "0.1.0"
+
+[dependencies]
+bitflags = "0.7.0"
+enum_primitive = "0.1.0"
+lazy_static = "0.2.1"
+libc = "0.2.17"
+
+[dependencies.assimp-sys]
+optional = true
+path = "E:/code/projects/2016/assimp-sys"
+
+[dependencies.nalgebra]
+optional = true
+version = "0.10.1"
+
+[features]
+compat = ["nalgebra"]
+default = ["msvc14", "assimp-sys"]
+msvc12 = []
+msvc14 = []
