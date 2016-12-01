@@ -1,13 +1,7 @@
 use std::slice;
 use std::ffi::{CString, CStr};
-use std::marker::PhantomData;
-use libc::c_uint;
-use std::cmp::min;
-
-use enum_primitive::FromPrimitive;
 
 use ::ffi;
-use ::ffi::*;
 use ::error::*;
 
 use iterator::*;

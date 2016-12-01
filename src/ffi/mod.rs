@@ -1,35 +1,38 @@
 #![allow(bad_style)]
 
 use libc::{c_char, c_uchar, c_float, c_int};
-use libc::{c_uint, c_void, size_t};
+use libc::{c_uint, c_void, size_t, c_double};
+
+use std::fmt::{Display, Debug, Formatter, Result as FmtResult};
+use std::ffi::CStr;
+use std::borrow::Cow;
+use std::slice;
 
 mod link;
 
 #[cfg(not(feature = "double_precision"))]
 pub mod types {
     //! This mod defines feature dependent types used by Assimp
-
     use libc::{c_float, c_int, c_uint};
 
-    /// AiReal can either be a single or double precision floating point type depending on feature flags
+    /// `AiReal` can either be a single or double precision floating point type depending on feature flags
     pub type AiReal = c_float;
-    /// AiInt can either be a WORD or DWORD integer type depending on feature flags
+    /// `AiInt` can either be a WORD or DWORD integer type depending on feature flags
     pub type AiInt = c_int;
-    /// AiUInt can either be a WORD or DWORD Unsigned integer type depending on feature flags
+    /// `AiUInt` can either be a WORD or DWORD Unsigned integer type depending on feature flags
     pub type AIUInt = c_uint;
 }
 
 #[cfg(feature = "double_precision")]
 pub mod types {
     //! This mod defines feature dependent types used by Assimp
-
     use libc::{c_double, c_longlong, c_ulonglong};
 
-    /// AiReal can either be a single or double precision floating point type depending on feature flags
+    /// `AiReal` can either be a single or double precision floating point type depending on feature flags
     pub type AiReal = c_double;
-    /// AiInt can either be a WORD or DWORD integer type depending on feature flags
+    /// `AiInt` can either be a WORD or DWORD integer type depending on feature flags
     pub type AiInt = c_longlong;
-    /// AiUInt can either be a WORD or DWORD Unsigned integer type depending on feature flags
+    /// `AiUInt` can either be a WORD or DWORD Unsigned integer type depending on feature flags
     pub type AiUInt = c_ulonglong;
 }
 
@@ -46,19 +49,19 @@ pub const AI_METADATA_TYPE_DOUBLE: c_int = 4;
 pub const AI_METADATA_TYPE_AISTRING: c_int = 5;
 pub const AI_METADATA_TYPE_AIVECTOR3D: c_int = 6;
 
-pub const SCENE_FLAG_INCOMPLETE: c_int = 0x1;
-pub const SCENE_FLAG_VALIDATED: c_int = 0x2;
-pub const SCENE_FLAG_VALIDATION_WARNING: c_int = 0x4;
-pub const SCENE_FLAG_NON_VERBOSE_FORMAT: c_int = 0x8;
-pub const SCENE_FLAG_TERRAIN: c_int = 0x10;
-pub const SCENE_FLAG_ALLOW_SHARED: c_int = 0x20;
+pub const SCENE_FLAG_INCOMPLETE: c_uint = 0x1;
+pub const SCENE_FLAG_VALIDATED: c_uint = 0x2;
+pub const SCENE_FLAG_VALIDATION_WARNING: c_uint = 0x4;
+pub const SCENE_FLAG_NON_VERBOSE_FORMAT: c_uint = 0x8;
+pub const SCENE_FLAG_TERRAIN: c_uint = 0x10;
+pub const SCENE_FLAG_ALLOW_SHARED: c_uint = 0x20;
 
-pub const MAX_FACE_INDICES: c_int = 0x7fff;
-pub const MAX_BONE_WEIGHTS: c_int = 0x7fffffff;
-pub const MAX_VERTICES: c_int = 0x7fffffff;
-pub const MAX_FACES: c_int = 0x7fffffff;
-pub const MAX_NUMBER_OF_COLOR_SETS: c_int = 0x8;
-pub const MAX_NUMBER_OF_TEXTURECOORDS: c_int = 0x8;
+pub const MAX_FACE_INDICES: c_uint = 0x7fff;
+pub const MAX_BONE_WEIGHTS: c_uint = 0x7fffffff;
+pub const MAX_VERTICES: c_uint = 0x7fffffff;
+pub const MAX_FACES: c_uint = 0x7fffffff;
+pub const MAX_NUMBER_OF_COLOR_SETS: c_uint = 0x8;
+pub const MAX_NUMBER_OF_TEXTURECOORDS: c_uint = 0x8;
 
 pub const PRIMITIVE_TYPE_POINT: c_uint = 0x1;
 pub const PRIMITIVE_TYPE_LINE: c_uint = 0x2;
@@ -126,12 +129,12 @@ pub const PROPERTY_TYPE_STRING: c_int = 0x3;
 pub const PROPERTY_TYPE_INTEGER: c_int = 0x4;
 pub const PROPERTY_TYPE_BUFFER: c_int = 0x5;
 
-pub const LIGHT_SOURCE_UNDEFINED: c_int = 0x0;
-pub const LIGHT_SOURCE_DIRECTIONAL: c_int = 0x1;
-pub const LIGHT_SOURCE_POINT: c_int = 0x2;
-pub const LIGHT_SOURCE_SPOT: c_int = 0x3;
-pub const LIGHT_SOURCE_AMBIENT: c_int = 0x4;
-pub const LIGHT_SOURCE_AREA: c_int = 0x5;
+pub const LIGHT_SOURCE_UNDEFINED: c_uint = 0x0;
+pub const LIGHT_SOURCE_DIRECTIONAL: c_uint = 0x1;
+pub const LIGHT_SOURCE_POINT: c_uint = 0x2;
+pub const LIGHT_SOURCE_SPOT: c_uint = 0x3;
+pub const LIGHT_SOURCE_AMBIENT: c_uint = 0x4;
+pub const LIGHT_SOURCE_AREA: c_uint = 0x5;
 
 pub const IMPORTER_FLAG_SUPPORT_TEXT: c_int = 0x1;
 pub const IMPORTER_FLAG_SUPPORT_BINARY: c_int = 0x2;
@@ -166,10 +169,25 @@ pub const POSTPROCESS_FLIP_WINDING_ORDER: c_uint = 0x1000000;
 pub const POSTPROCESS_SPLIT_BY_BONE_COUNT: c_uint = 0x2000000;
 pub const POSTPROCESS_DEBONE: c_uint = 0x4000000;
 
+pub const ANIM_BEHAVIOR_DEFAULT: c_uint = 0x0;
+pub const ANIM_BEHAVIOR_CONSTANT: c_uint = 0x1;
+pub const ANIM_BEHAVIOR_LINEAR: c_uint = 0x2;
+pub const ANIM_BEHAVIOR_REPEAT: c_uint = 0x3;
+
 #[repr(C)]
 pub struct AiString {
     pub length: size_t,
     pub data: [c_uchar; MAXLEN as usize],
+}
+
+impl AiString {
+    pub fn to_string_lossy(&self) -> Cow<str> {
+        unsafe {
+            CStr::from_bytes_with_nul_unchecked(
+                slice::from_raw_parts(self.data.as_ptr(), self.length as usize + 1)
+            )
+        }.to_string_lossy()
+    }
 }
 
 impl From<AiString> for String {
@@ -182,8 +200,20 @@ impl Clone for AiString {
     fn clone(&self) -> AiString { AiString { ..*self } }
 }
 
+impl Display for AiString {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "{}", self.to_string_lossy())
+    }
+}
+
+impl Debug for AiString {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "AiString \"{}\"", self)
+    }
+}
+
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiVector3D {
     pub x: AiReal,
     pub y: AiReal,
@@ -191,14 +221,14 @@ pub struct AiVector3D {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiVector2D {
     pub x: AiReal,
     pub y: AiReal,
 }
 
 #[repr(C, packed)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AiMatrix3x3 {
     pub a1: AiReal,
     pub a2: AiReal,
@@ -212,7 +242,7 @@ pub struct AiMatrix3x3 {
 }
 
 #[repr(C, packed)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AiMatrix4x4 {
     pub a1: AiReal,
     pub a2: AiReal,
@@ -232,12 +262,22 @@ pub struct AiMatrix4x4 {
     pub d4: AiReal,
 }
 
+#[repr(C)] //Not packed?
+#[derive(Copy, Clone, Debug)]
+pub struct AiQuaternion {
+    pub w: AiReal,
+    pub x: AiReal,
+    pub y: AiReal,
+    pub z: AiReal,
+}
+
+
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiUVTransform {
     pub translation: AiVector2D,
     pub scaling: AiVector2D,
-    pub rotation: AiReal
+    pub rotation: AiReal,
 }
 
 #[repr(C)]
@@ -254,11 +294,63 @@ pub struct AiMetadataEntry {
 }
 
 #[repr(C)]
-pub struct AiAnimation {
-    non: *const c_void //TODO
+pub struct AiVectorKey {
+    pub time: c_double,
+    pub value: AiVector3D,
 }
 
 #[repr(C)]
+pub struct AiQuatKey {
+    pub time: c_double,
+    pub value: AiQuaternion,
+}
+
+#[repr(C)]
+pub struct AiMeshKey {
+    pub time: c_double,
+    pub value: c_uint,
+}
+
+#[repr(C)]
+pub struct AiNodeAnim {
+    pub name: AiString,
+
+    pub num_position_keys: c_uint,
+    pub position_keys: *const AiVectorKey,
+
+    pub num_rotation_keys: c_uint,
+    pub rotation_keys: *const AiQuatKey,
+
+    pub num_scaling_keys: c_uint,
+    pub scaling_keys: *const AiVectorKey,
+
+    pub pre_state: c_uint,
+    pub post_state: c_uint,
+}
+
+#[repr(C)]
+pub struct AiMeshAnim {
+    pub name: AiString,
+    pub num_keys: c_uint,
+    pub keys: AiMeshKey,
+}
+
+#[repr(C)]
+pub struct AiAnimation {
+    pub name: AiString,
+
+    pub duration: c_double,
+    pub ticks_per_second: c_double,
+
+    pub num_channels: c_uint,
+    pub channels: *const *const AiNodeAnim,
+
+    pub num_mesh_channels: c_uint,
+    pub mesh_channels: *const *const AiMeshAnim,
+}
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct AiCamera {
     pub name: AiString,
     pub position: AiVector3D,
@@ -271,6 +363,7 @@ pub struct AiCamera {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct AiLight {
     pub name: AiString,
     pub kind: c_int,
@@ -289,7 +382,7 @@ pub struct AiLight {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiColor4D {
     pub r: AiReal,
     pub g: AiReal,
@@ -298,7 +391,7 @@ pub struct AiColor4D {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiColor3D {
     pub r: AiReal,
     pub g: AiReal,
@@ -319,7 +412,7 @@ pub struct AiMaterialProperty {
 pub struct AiMaterial {
     pub properties: *const *const AiMaterialProperty,
     pub num_properties: c_uint,
-    pub num_allocated: c_uint
+    pub num_allocated: c_uint,
 }
 
 #[repr(C)]
@@ -329,7 +422,7 @@ pub struct AiFace {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiVertexWeight {
     pub vertex_id: c_uint,
     pub weight: c_float,
@@ -373,7 +466,7 @@ pub struct AiMesh {
     pub name: AiString,
     //Not in use yet by Assimp
     num_anim_meshes: c_uint,
-    anim_meshes: *const *const AiAnimMesh
+    anim_meshes: *const *const AiAnimMesh,
 }
 
 #[repr(C)]
@@ -397,7 +490,7 @@ pub struct AiTexture {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct AiTexel {
     pub b: c_uint,
     pub g: c_uint,
@@ -408,17 +501,24 @@ pub struct AiTexel {
 #[repr(C)]
 pub struct AiScene {
     pub flags: c_uint,
+
     pub root_node: *const AiNode,
+
     pub num_meshes: c_uint,
     pub meshes: *const *const AiMesh,
+
     pub num_materials: c_uint,
     pub materials: *const *const AiMaterial,
+
     pub num_animations: c_uint,
     pub animations: *const *const AiAnimation,
+
     pub num_textures: c_uint,
     pub textures: *const *const AiTexture,
+
     pub num_lights: c_uint,
     pub lights: *const *const AiLight,
+
     pub num_cameras: c_uint,
     pub cameras: *const *const AiCamera,
     //Unused by us

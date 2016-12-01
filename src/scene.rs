@@ -1,24 +1,35 @@
-use std::ffi::{CString, CStr};
-use std::ptr;
+use libc::c_uint;
+use std::ffi::CString;
 use std::mem;
 use std::marker::PhantomData;
-use std::path::Path;
-use std::io;
-use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 use std::slice;
 
-use ffi::{self, AiVector3D, AiVector2D, AiMatrix3x3, AiMatrix4x4};
+use ffi;
 use error::*;
 use postprocess::PostprocessEffect;
 use components::*;
 
 pub struct Scene<'a> {
     scene_ptr: *const ffi::AiScene,
+    path: PathBuf,
     _lifetime: PhantomData<&'a ()>
 }
 
-/// The C API for Assimp is thread safe, so it's okay to move scenes between threads
+// The C API for Assimp is thread safe, so it's okay to move scenes between threads
 unsafe impl<'a> Send for Scene<'a> {}
+
+bitflags! {
+    /// Scene bitflags
+    pub flags SceneFlags: c_uint {
+        const INCOMPLETE = ffi::SCENE_FLAG_INCOMPLETE,
+        const VALIDATED = ffi::SCENE_FLAG_VALIDATED,
+        const VALIDATION_WARNIGN = ffi::SCENE_FLAG_VALIDATION_WARNING,
+        const NON_VERBOSE_FORMAT = ffi::SCENE_FLAG_NON_VERBOSE_FORMAT,
+        const TERRAIN = ffi::SCENE_FLAG_TERRAIN,
+        const SHARED = ffi::SCENE_FLAG_ALLOW_SHARED
+    }
+}
 
 macro_rules! impl_scene_iterator {
     ($field:ident, $num_field:ident, $t:ty) => {
@@ -37,22 +48,50 @@ impl<'a> Scene<'a> {
         unsafe { &*self.scene_ptr }
     }
 
+    #[inline]
+    pub fn flags(&self) -> SceneFlags {
+        SceneFlags::from_bits_truncate(self.raw_scene().flags)
+    }
+
+    /// Checks if the scene is concrete and complete.
+    #[inline]
+    pub fn valid(&self) -> bool {
+        !(self.scene_ptr.is_null() ||
+            self.flags().contains(INCOMPLETE) ||
+            self.raw_scene().root_node.is_null())
+    }
+
+    #[inline]
+    pub fn pathbuf(&self) -> &PathBuf { &self.path }
+
+    #[inline]
+    pub fn path(&self) -> &Path { self.path.as_path() }
+
     pub fn import<P: AsRef<Path>>(path: P, effects: Option<PostprocessEffect>) -> AiResult<Scene<'a>> {
-        let c_path = CString::new(path.as_ref().to_str().unwrap()).unwrap();
+        let path = path.as_ref();
+
+        let c_path = CString::new(path.to_str().unwrap()).unwrap();
 
         let scene_ptr = unsafe {
-            ffi::aiImportFile(c_path.as_ptr() as *const _, match effects {
+            ffi::aiImportFile(c_path.as_ptr(), match effects {
                 None => 0,
                 Some(flags) => flags.bits()
             })
         };
 
-        check_assimp_errors!(scene_ptr.is_null());
-
-        Ok(Scene {
+        let scene = Scene {
             scene_ptr: scene_ptr,
+            path: path.to_path_buf(),
             _lifetime: PhantomData
-        })
+        };
+
+        if !scene.valid() {
+            check_assimp_errors!();
+
+            return Err(AiError::InvalidScene);
+        }
+
+        Ok(scene)
     }
 
     /// Apply postprocessing to the scene.
@@ -64,18 +103,24 @@ impl<'a> Scene<'a> {
             ffi::aiApplyPostProcessing(self.scene_ptr, effects.bits())
         };
 
-        check_assimp_errors!(scene_ptr != self.scene_ptr);
-
-        let new_scene = Scene {
+        let scene = Scene {
             scene_ptr: scene_ptr,
+            path: self.path.clone(),
             _lifetime: PhantomData
         };
+
+        if !scene.valid() {
+            check_assimp_errors!();
+
+            return Err(AiError::InvalidScene);
+        }
 
         //Don't run the destructor on self, since we took ownership of the pointer
         mem::forget(self);
 
-        Ok(new_scene)
+        Ok(scene)
     }
+
 
     impl_scene_iterator!(meshes, num_meshes, Mesh);
     impl_scene_iterator!(materials, num_materials, Material);
@@ -83,6 +128,24 @@ impl<'a> Scene<'a> {
     impl_scene_iterator!(lights, num_lights, Light);
     impl_scene_iterator!(cameras, num_cameras, Camera);
     impl_scene_iterator!(animations, num_animations, Animation);
+
+    /// Get a specific mesh. The index is usually provided by some `Node`
+    pub fn mesh(&self, index: usize) -> Option<Mesh<'a>> {
+        let scene: &ffi::AiScene = self.raw_scene();
+
+        if index >= scene.num_meshes as usize || scene.meshes.is_null() { None } else {
+            //Exploit that `from` method used for the iterators
+            Some(<Mesh as AiIteratorAdapter<'a, Mesh<'a>>>::from(unsafe {
+                &*scene.meshes.offset(index as isize)
+            }))
+        }
+    }
+
+    pub fn root(&self) -> Node<'a> {
+        let scene: &ffi::AiScene = self.raw_scene();
+
+        <Node as AiIteratorAdapter<'a, Node<'a>>>::from(&scene.root_node)
+    }
 }
 
 impl<'a> Drop for Scene<'a> {

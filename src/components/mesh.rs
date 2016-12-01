@@ -1,12 +1,16 @@
 use std::slice;
-use std::marker::PhantomData;
 use libc::c_uint;
+use std::borrow::Cow;
+use std::sync::Arc;
+
+use lazy;
 
 use enum_primitive::FromPrimitive;
 
 use ::ffi;
 use ::ffi::*;
 
+use traits::Named;
 use iterator::*;
 
 pub struct VertexWeight<'a> {
@@ -43,12 +47,13 @@ impl<'a> AiIteratorAdapter<'a, Bone<'a>> for Bone<'a> {
     }
 }
 
-impl<'a> Bone<'a> {
-    /// Get the name of the bone
-    pub fn name(&self) -> String {
-        return self.raw.name.clone().into()
+impl<'a> Named<'a> for Bone<'a> {
+    fn name(&self) -> Cow<'a, str> {
+        self.raw.name.to_string_lossy()
     }
+}
 
+impl<'a> Bone<'a> {
     /// Returns a slice to the underlying C PODs for more efficient access than running through
     /// the iterator
     #[inline(always)]
@@ -105,7 +110,17 @@ enum_from_primitive! {
 }
 
 pub struct Mesh<'a> {
-    raw: &'a ffi::AiMesh
+    raw: &'a ffi::AiMesh,
+    indices: Arc<lazy::Lazy<Vec<c_uint>>>
+}
+
+impl<'a> Clone for Mesh<'a> {
+    fn clone(&self) -> Mesh<'a> {
+        Mesh {
+            raw: self.raw,
+            indices: self.indices.clone()
+        }
+    }
 }
 
 impl<'a> AiIteratorAdapter<'a, Mesh<'a>> for Mesh<'a> {
@@ -113,19 +128,16 @@ impl<'a> AiIteratorAdapter<'a, Mesh<'a>> for Mesh<'a> {
 
     #[inline(always)]
     fn from(inner: &'a *const ffi::AiMesh) -> Mesh<'a> {
-        Mesh { raw: unsafe { inner.as_ref().expect("Mesh pointer provided by Assimp was NULL") } }
+        Mesh {
+            raw: unsafe { inner.as_ref().expect("Mesh pointer provided by Assimp was NULL") },
+            indices: Arc::default()
+        }
     }
 }
 
-macro_rules! impl_mesh_vector_field {
-    ($field:ident) => {
-        pub fn $field(&self) -> Option<&'a [AiVector3D]> {
-            if self.raw.num_vertices == 0 || self.raw.$field.is_null() {
-                None
-            } else {
-                Some(unsafe { slice::from_raw_parts(self.raw.$field, self.raw.num_vertices as usize) })
-            }
-        }
+impl<'a> Named<'a> for Mesh<'a> {
+    fn name(&self) -> Cow<'a, str> {
+        self.raw.name.to_string_lossy()
     }
 }
 
@@ -139,21 +151,14 @@ impl<'a> Mesh<'a> {
         PrimitiveType::from_u32(self.raw.primitive_type as u32)
     }
 
-    /// Returns an iterator to all the faces in the mesh
-    pub fn faces(&self) -> Option<AiIterator<'a, Face<'a>>> {
-        if self.raw.num_faces == 0 || self.raw.faces.is_null() {
-            None
-        } else {
-            Some(AiIterator::from(unsafe {
-                slice::from_raw_parts(self.raw.faces, self.raw.num_faces as usize).iter()
-            }))
-        }
-    }
+    impl_optional_iterator!(faces, faces, num_faces, Face, {
+        /// Returns an iterator to all the faces in the mesh
+    });
 
-    impl_mesh_vector_field!(vertices);
-    impl_mesh_vector_field!(normals);
-    impl_mesh_vector_field!(tangents);
-    impl_mesh_vector_field!(bitangents);
+    impl_optional_slice!(vertices, vertices, num_vertices, AiVector3D);
+    impl_optional_slice!(normals, normals, num_vertices, AiVector3D);
+    impl_optional_slice!(tangents, tangents, num_vertices, AiVector3D);
+    impl_optional_slice!(bitangents, bitangents, num_vertices, AiVector3D);
 
     /// Gets the number of active UV(W) coordinate systems for the mesh. Meshes can have more than one.
     pub fn uv_channels(&self) -> usize {
@@ -163,9 +168,7 @@ impl<'a> Mesh<'a> {
     /// Gets a specific UV(W) channel and the number of dimensions it contains.
     pub fn uv_channel(&self, index: usize) -> Option<(u32, &'a [AiVector3D])> {
         if index < ffi::MAX_NUMBER_OF_TEXTURECOORDS as usize {
-            if self.raw.num_uvs[index] == 0 || self.raw.texcoords[index].is_null() {
-                None
-            } else {
+            if self.raw.num_uvs[index] == 0 || self.raw.texcoords[index].is_null() { None } else {
                 Some((
                     self.raw.num_uvs[index] as u32,
                     unsafe { slice::from_raw_parts(self.raw.texcoords[index], self.raw.num_vertices as usize) },
@@ -177,41 +180,36 @@ impl<'a> Mesh<'a> {
     }
 
     /// Counts the number of indices for the mesh. This is NOT zero-cost
-    pub fn count_indices(&self) -> Option<u64> {
-        if let Some(faces) = self.faces() {
-            let mut num = 0;
-
-            for ref face in faces {
-                num += face.indices().len() as u64;
-            }
-
-            Some(num)
+    pub fn count_indices(&self) -> Option<usize> {
+        if let Some(indices) = self.indices() {
+            Some(indices.len())
         } else {
             None
         }
     }
 
     /// Accumulates the indices for every face in the mesh. This is NOT zero-cost
-    pub fn indices(&self) -> Option<Vec<c_uint>> {
-        if let Some(faces) = self.faces() {
-            let mut indices = Vec::new();
-
-            for ref face in faces {
-                indices.extend_from_slice(&face.indices());
-            }
-
+    pub fn indices(&self) -> Option<&Vec<c_uint>> {
+        if let Some(indices) = self.indices.get_unevaluated() {
             Some(indices)
         } else {
-            None
+            if let Some(faces) = self.faces() {
+                let mut indices = Vec::new();
+
+                for ref face in faces {
+                    indices.extend_from_slice(&face.indices());
+                }
+
+                self.indices.set(indices);
+
+                self.indices()
+            } else {
+                None
+            }
         }
     }
 
     /// Get the index of the material for this mesh
     #[inline(always)]
     pub fn material_index(&self) -> u32 { self.raw.material_index as u32 }
-
-    /// Get the name of the mesh
-    pub fn name(&self) -> String {
-        return self.raw.name.clone().into()
-    }
 }

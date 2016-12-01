@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)]
 
 extern crate libc;
 #[macro_use]
@@ -7,6 +7,8 @@ extern crate bitflags;
 extern crate lazy_static;
 #[macro_use]
 extern crate enum_primitive;
+extern crate vec_map;
+extern crate lazy;
 
 #[cfg(feature = "compat")]
 extern crate nalgebra;
@@ -18,6 +20,7 @@ pub mod ffi;
 #[macro_use]
 pub mod error;
 pub mod postprocess;
+#[macro_use]
 pub mod components;
 pub mod scene;
 

@@ -1,30 +1,36 @@
 //! Nalgebra compatibility module
 //!
-//! This module defines a few traits to convert between Assimp structures and Nalgebra structures.
+//! This module implements the `From` trait to convert between Assimp structures and Nalgebra structures.
 
 use nalgebra::*;
 
 use ffi;
 
+pub use ffi::{AiVector3D, AiVector2D, AiMatrix4x4, AiMatrix3x3, AiQuaternion, AiUVTransform};
+
 impl From<ffi::AiVector2D> for Vector2<ffi::AiReal> {
+    #[inline]
     fn from(v: ffi::AiVector2D) -> Vector2<ffi::AiReal> {
         Vector2::new(v.x, v.y)
     }
 }
 
 impl From<Vector2<ffi::AiReal>> for ffi::AiVector2D {
+    #[inline]
     fn from(v: Vector2<ffi::AiReal>) -> ffi::AiVector2D {
         ffi::AiVector2D { x: v.x, y: v.y }
     }
 }
 
 impl From<ffi::AiVector3D> for Vector3<ffi::AiReal> {
+    #[inline]
     fn from(v: ffi::AiVector3D) -> Vector3<ffi::AiReal> {
         Vector3::new(v.x, v.y, v.z)
     }
 }
 
 impl From<Vector3<ffi::AiReal>> for ffi::AiVector3D {
+    #[inline]
     fn from(v: Vector3<ffi::AiReal>) -> ffi::AiVector3D {
         ffi::AiVector3D { x: v.x, y: v.y, z: v.z }
     }
@@ -69,7 +75,22 @@ impl From<Matrix4<ffi::AiReal>> for ffi::AiMatrix4x4 {
 }
 
 impl ffi::AiUVTransform {
+    /// Get the translation and rotation parts of a UV Transform as an Nalgebra `Isometry2`
     pub fn isometry(&self) -> Isometry2<ffi::AiReal> {
         Isometry2::new(self.translation.clone().into(), Vector1::new(self.rotation))
+    }
+}
+
+impl From<Quaternion<ffi::AiReal>> for ffi::AiQuaternion {
+    #[inline]
+    fn from(v: Quaternion<ffi::AiReal>) -> ffi::AiQuaternion {
+        ffi::AiQuaternion { w: v.w, x: v.i, y: v.j, z: v.k }
+    }
+}
+
+impl From<ffi::AiQuaternion> for Quaternion<ffi::AiReal> {
+    #[inline]
+    fn from(v: ffi::AiQuaternion) -> Quaternion<ffi::AiReal> {
+        Quaternion { w: v.w, i: v.x, j: v.y, k: v.z }
     }
 }

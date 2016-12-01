@@ -1,11 +1,6 @@
 use std::slice;
-use std::marker::PhantomData;
-use libc::c_uint;
-
-use enum_primitive::FromPrimitive;
 
 use ::ffi;
-use ::ffi::*;
 
 use iterator::*;
 

@@ -2,7 +2,7 @@ use libc::c_uint;
 use ffi;
 
 bitflags! {
-    #[doc = "Postprocess Effects bitflags"]
+    /// Postprocess Effects bitflags
     pub flags PostprocessEffect: c_uint {
         const CALC_TANGENT_SPACE = ffi::POSTPROCESS_CALC_TANGENT_SPACE,
         const JOIN_IDENTICAL_VERTICES = ffi::POSTPROCESS_JOIN_IDENTICAL_VERTICES,

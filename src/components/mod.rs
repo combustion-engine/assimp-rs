@@ -1,5 +1,7 @@
-#[macro_export]
+#[macro_use]
 pub mod macros;
+
+pub mod traits;
 
 pub mod iterator;
 pub mod mesh;
@@ -9,6 +11,8 @@ pub mod camera;
 pub mod light;
 pub mod animation;
 pub mod node;
+
+pub use traits::*;
 
 pub use macros::*;
 pub use iterator::*;
