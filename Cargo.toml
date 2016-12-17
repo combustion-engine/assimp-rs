@@ -12,10 +12,10 @@ vec_map = "0.6.0"
 
 [dependencies.assimp-sys]
 optional = true
-path = "E:/code/projects/2016/assimp-sys"
+path = "../assimp-sys"
 
 [dependencies.lazy]
-path = "E:/code/projects/2016/lazy"
+path = "../lazy"
 
 [dependencies.nalgebra]
 optional = true
