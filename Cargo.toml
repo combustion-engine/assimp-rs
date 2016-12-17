@@ -19,7 +19,7 @@ path = "../lazy"
 
 [dependencies.nalgebra]
 optional = true
-version = "0.10.1"
+path = "../nalgebra"
 
 [features]
 compat = ["nalgebra"]
