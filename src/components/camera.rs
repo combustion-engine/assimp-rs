@@ -3,19 +3,18 @@ use std::borrow::Cow;
 use ::ffi;
 use ::ffi::*;
 
-use traits::Named;
-use iterator::*;
+use traits::{Named, FromRaw};
 
 pub struct Camera<'a> {
     raw: &'a ffi::AiCamera
 }
 
-impl<'a> AiIteratorAdapter<'a, Camera<'a>> for Camera<'a> {
-    type Inner = *const ffi::AiCamera;
+impl<'a> FromRaw<'a, Camera<'a>> for Camera<'a> {
+    type Raw = *const ffi::AiCamera;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiCamera) -> Camera<'a> {
-        Camera { raw: unsafe { inner.as_ref().expect("Camera pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> Camera<'a> {
+        Camera { raw: unsafe { raw.as_ref().expect("Camera pointer provided by Assimp was NULL") } }
     }
 }
 

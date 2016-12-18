@@ -32,11 +32,15 @@ bitflags! {
 }
 
 macro_rules! impl_scene_iterator {
-    ($field:ident, $num_field:ident, $t:ty) => {
-        pub fn $field(&self) -> Option<AiIterator<'a, $t>> {
+    ($field:ident, $num_field:ident, $t:ident) => {
+        pub fn $field(&self) -> Option<impl Iterator<Item = $t<'a>>> {
             let scene: &ffi::AiScene = self.raw_scene();
             if scene.$field.is_null() || scene.$num_field == 0 { None } else {
-                Some(AiIterator::from(unsafe { slice::from_raw_parts(scene.$field, scene.$num_field as usize) }))
+                Some(unsafe {
+                    slice::from_raw_parts(scene.$field, scene.$num_field as usize)
+                    .iter()
+                    .map(|v| $t::from_raw(v))
+                })
             }
         }
     }
@@ -135,7 +139,7 @@ impl<'a> Scene<'a> {
 
         if index >= scene.num_meshes as usize || scene.meshes.is_null() { None } else {
             //Exploit that `from` method used for the iterators
-            Some(<Mesh as AiIteratorAdapter<'a, Mesh<'a>>>::from(unsafe {
+            Some(Mesh::from_raw(unsafe {
                 &*scene.meshes.offset(index as isize)
             }))
         }
@@ -144,7 +148,7 @@ impl<'a> Scene<'a> {
     pub fn root(&self) -> Node<'a> {
         let scene: &ffi::AiScene = self.raw_scene();
 
-        <Node as AiIteratorAdapter<'a, Node<'a>>>::from(&scene.root_node)
+        Node::from_raw(&scene.root_node)
     }
 }
 

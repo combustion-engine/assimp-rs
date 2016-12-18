@@ -10,19 +10,18 @@ use enum_primitive::FromPrimitive;
 use ::ffi;
 use ::ffi::*;
 
-use traits::Named;
-use iterator::*;
+use traits::{Named, FromRaw};
 
 pub struct VertexWeight<'a> {
     raw: &'a ffi::AiVertexWeight
 }
 
-impl<'a> AiIteratorAdapter<'a, VertexWeight<'a>> for VertexWeight<'a> {
-    type Inner = ffi::AiVertexWeight;
+impl<'a> FromRaw<'a, VertexWeight<'a>> for VertexWeight<'a> {
+    type Raw = ffi::AiVertexWeight;
 
     #[inline(always)]
-    fn from(inner: &'a ffi::AiVertexWeight) -> VertexWeight<'a> {
-        VertexWeight { raw: inner }
+    fn from_raw(raw: &'a Self::Raw) -> VertexWeight<'a> {
+        VertexWeight { raw: raw }
     }
 }
 
@@ -38,12 +37,12 @@ pub struct Bone<'a> {
     raw: &'a ffi::AiBone
 }
 
-impl<'a> AiIteratorAdapter<'a, Bone<'a>> for Bone<'a> {
-    type Inner = ffi::AiBone;
+impl<'a> FromRaw<'a, Bone<'a>> for Bone<'a> {
+    type Raw = ffi::AiBone;
 
     #[inline(always)]
-    fn from(inner: &'a ffi::AiBone) -> Bone<'a> {
-        Bone { raw: inner }
+    fn from_raw(raw: &'a Self::Raw) -> Bone<'a> {
+        Bone { raw: raw }
     }
 }
 
@@ -63,8 +62,8 @@ impl<'a> Bone<'a> {
 
     /// Returns an iterator to the vertex weights
     #[inline]
-    pub fn weights(&self) -> AiIterator<'a, VertexWeight<'a>> {
-        AiIterator::from(self.raw_weights().iter())
+    pub fn weights(&self) -> impl Iterator<Item = VertexWeight<'a>> {
+        self.raw_weights().iter().map(VertexWeight::from_raw)
     }
 
     /// Get a reference to the offset matrix of the bone
@@ -80,12 +79,12 @@ pub struct Face<'a> {
     raw: &'a ffi::AiFace
 }
 
-impl<'a> AiIteratorAdapter<'a, Face<'a>> for Face<'a> {
-    type Inner = ffi::AiFace;
+impl<'a> FromRaw<'a, Face<'a>> for Face<'a> {
+    type Raw = ffi::AiFace;
 
     #[inline(always)]
-    fn from(inner: &'a ffi::AiFace) -> Face<'a> {
-        Face { raw: inner }
+    fn from_raw(raw: &'a Self::Raw) -> Face<'a> {
+        Face { raw: raw }
     }
 }
 
@@ -123,13 +122,13 @@ impl<'a> Clone for Mesh<'a> {
     }
 }
 
-impl<'a> AiIteratorAdapter<'a, Mesh<'a>> for Mesh<'a> {
-    type Inner = *const ffi::AiMesh;
+impl<'a> FromRaw<'a, Mesh<'a>> for Mesh<'a> {
+    type Raw = *const ffi::AiMesh;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiMesh) -> Mesh<'a> {
+    fn from_raw(raw: &'a Self::Raw) -> Mesh<'a> {
         Mesh {
-            raw: unsafe { inner.as_ref().expect("Mesh pointer provided by Assimp was NULL") },
+            raw: unsafe { raw.as_ref().expect("Mesh pointer provided by Assimp was NULL") },
             indices: Arc::default()
         }
     }

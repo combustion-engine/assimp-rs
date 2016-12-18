@@ -1,21 +1,20 @@
 use std::slice;
 use std::ffi::{CString, CStr};
 
+use traits::FromRaw;
 use ::ffi;
 use ::error::*;
-
-use iterator::*;
 
 pub struct Texture<'a> {
     raw: &'a ffi::AiTexture,
 }
 
-impl<'a> AiIteratorAdapter<'a, Texture<'a>> for Texture<'a> {
-    type Inner = *const ffi::AiTexture;
+impl<'a> FromRaw<'a, Texture<'a>> for Texture<'a> {
+    type Raw = *const ffi::AiTexture;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiTexture) -> Texture<'a> {
-        Texture { raw: unsafe { inner.as_ref().expect("Texture pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> Texture<'a> {
+        Texture { raw: unsafe { raw.as_ref().expect("Texture pointer provided by Assimp was NULL") } }
     }
 }
 

@@ -5,8 +5,7 @@ use std::borrow::Cow;
 use ::ffi;
 use ::ffi::*;
 
-use traits::Named;
-use iterator::*;
+use traits::{Named, FromRaw};
 use mesh::*;
 use ::scene::*;
 
@@ -14,18 +13,19 @@ pub struct Node<'a> {
     raw: &'a ffi::AiNode
 }
 
-impl<'a> AiIteratorAdapter<'a, Node<'a>> for Node<'a> {
-    type Inner = *const ffi::AiNode;
-
-    #[inline(always)]
-    fn from(inner: &'a *const ffi::AiNode) -> Node<'a> {
-        Node { raw: unsafe { inner.as_ref().expect("Node pointer provided by Asssimp was NULL") } }
+impl<'a> Named<'a> for Node<'a> {
+    #[inline]
+    fn name(&self) -> Cow<'a, str> {
+        self.raw.name.to_string_lossy()
     }
 }
 
-impl<'a> Named<'a> for Node<'a> {
-    fn name(&self) -> Cow<'a, str> {
-        self.raw.name.to_string_lossy()
+impl<'a> FromRaw<'a, Node<'a>> for Node<'a> {
+    type Raw = *const ffi::AiNode;
+
+    #[inline(always)]
+    fn from_raw(raw: &'a Self::Raw) -> Node<'a> {
+        Node { raw: unsafe { raw.as_ref().expect("Node pointer provided by Assimp was NULL") } }
     }
 }
 
@@ -36,9 +36,7 @@ impl<'a> Node<'a> {
 
     /// If the node has a parent, get it.
     pub fn parent(&self) -> Option<Node<'a>> {
-        if self.raw.parent.is_null() {
-            None
-        } else {
+        if self.raw.parent.is_null() { None } else {
             Some(Node { raw: unsafe { &*self.raw.parent } })
         }
     }
@@ -52,9 +50,11 @@ impl<'a> Node<'a> {
     });
 
     /// Maps the mesh indices of this node to the meshes in a scene.
-    pub fn meshes_from_scene(&self, scene: &'a Scene<'a>) -> Option<Box<Iterator<Item = Mesh<'a>> + 'a>> {
+    pub fn meshes_from_scene(&self, scene: &'a Scene<'a>) -> Option<impl Iterator<Item = Mesh<'a>> + 'a> {
         if let Some(mesh_indices) = self.meshes() {
-            Some(Box::new(mesh_indices.iter().filter_map(move |index| scene.mesh(*index as usize))))
+            Some(mesh_indices
+                .iter()
+                .filter_map(move |index| scene.mesh(*index as usize)))
         } else {
             None
         }

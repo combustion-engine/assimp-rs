@@ -3,7 +3,6 @@ pub mod macros;
 
 pub mod traits;
 
-pub mod iterator;
 pub mod mesh;
 pub mod material;
 pub mod texture;
@@ -15,7 +14,6 @@ pub mod node;
 pub use traits::*;
 
 pub use macros::*;
-pub use iterator::*;
 pub use mesh::*;
 pub use material::*;
 pub use texture::*;

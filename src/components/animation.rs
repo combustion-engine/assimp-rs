@@ -8,20 +8,19 @@ use ::ffi::*;
 
 use ::scene::*;
 
-use traits::Named;
+use traits::{Named, FromRaw};
 use mesh::*;
-use iterator::*;
 
 pub struct VectorKey<'a> {
     raw: &'a ffi::AiVectorKey,
 }
 
-impl<'a> AiIteratorAdapter<'a, VectorKey<'a>> for VectorKey<'a> {
-    type Inner = ffi::AiVectorKey;
+impl<'a> FromRaw<'a, VectorKey<'a>> for VectorKey<'a> {
+    type Raw = ffi::AiVectorKey;
 
     #[inline(always)]
-    fn from(inner: &'a ffi::AiVectorKey) -> VectorKey<'a> {
-        VectorKey { raw: inner }
+    fn from_raw(raw: &'a Self::Raw) -> VectorKey<'a> {
+        VectorKey { raw: raw }
     }
 }
 
@@ -37,12 +36,12 @@ pub struct QuaternionKey<'a> {
     raw: &'a ffi::AiQuatKey,
 }
 
-impl<'a> AiIteratorAdapter<'a, QuaternionKey<'a>> for QuaternionKey<'a> {
-    type Inner = ffi::AiQuatKey;
+impl<'a> FromRaw<'a, QuaternionKey<'a>> for QuaternionKey<'a> {
+    type Raw = ffi::AiQuatKey;
 
     #[inline(always)]
-    fn from(inner: &'a ffi::AiQuatKey) -> QuaternionKey<'a> {
-        QuaternionKey { raw: inner }
+    fn from_raw(raw: &'a Self::Raw) -> QuaternionKey<'a> {
+        QuaternionKey { raw: raw }
     }
 }
 
@@ -58,12 +57,12 @@ pub struct MeshKey<'a> {
     raw: &'a ffi::AiMeshKey,
 }
 
-impl<'a> AiIteratorAdapter<'a, MeshKey<'a>> for MeshKey<'a> {
-    type Inner = ffi::AiMeshKey;
+impl<'a> FromRaw<'a, MeshKey<'a>> for MeshKey<'a> {
+    type Raw = ffi::AiMeshKey;
 
     #[inline(always)]
-    fn from(inner: &'a ffi::AiMeshKey) -> MeshKey<'a> {
-        MeshKey { raw: inner }
+    fn from_raw(raw: &'a Self::Raw) -> MeshKey<'a> {
+        MeshKey { raw: raw }
     }
 }
 
@@ -90,12 +89,12 @@ impl<'a> Named<'a> for NodeAnimation<'a> {
     }
 }
 
-impl<'a> AiIteratorAdapter<'a, NodeAnimation<'a>> for NodeAnimation<'a> {
-    type Inner = *const ffi::AiNodeAnim;
+impl<'a> FromRaw<'a, NodeAnimation<'a>> for NodeAnimation<'a> {
+    type Raw = *const ffi::AiNodeAnim;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiNodeAnim) -> NodeAnimation<'a> {
-        NodeAnimation { raw: unsafe { inner.as_ref().expect("NodeAnim pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> NodeAnimation<'a> {
+        NodeAnimation { raw: unsafe { raw.as_ref().expect("NodeAnim pointer provided by Assimp was NULL") } }
     }
 }
 
@@ -115,12 +114,12 @@ impl<'a> Named<'a> for MeshAnimation<'a> {
     }
 }
 
-impl<'a> AiIteratorAdapter<'a, MeshAnimation<'a>> for MeshAnimation<'a> {
-    type Inner = *const ffi::AiMeshAnim;
+impl<'a> FromRaw<'a, MeshAnimation<'a>> for MeshAnimation<'a> {
+    type Raw = *const ffi::AiMeshAnim;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiMeshAnim) -> MeshAnimation<'a> {
-        MeshAnimation { raw: unsafe { inner.as_ref().expect("MeshAnim pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> MeshAnimation<'a> {
+        MeshAnimation { raw: unsafe { raw.as_ref().expect("MeshAnim pointer provided by Assimp was NULL") } }
     }
 }
 
@@ -134,12 +133,12 @@ impl<'a> Named<'a> for Animation<'a> {
     }
 }
 
-impl<'a> AiIteratorAdapter<'a, Animation<'a>> for Animation<'a> {
-    type Inner = *const ffi::AiAnimation;
+impl<'a> FromRaw<'a, Animation<'a>> for Animation<'a> {
+    type Raw = *const ffi::AiAnimation;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiAnimation) -> Animation<'a> {
-        Animation { raw: unsafe { inner.as_ref().expect("Animation pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> Animation<'a> {
+        Animation { raw: unsafe { raw.as_ref().expect("Animation pointer provided by Assimp was NULL") } }
     }
 }
 

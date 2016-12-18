@@ -2,18 +2,18 @@ use std::slice;
 
 use ::ffi;
 
-use iterator::*;
+use traits::FromRaw;
 
 pub struct MaterialProperty<'a> {
     raw: &'a ffi::AiMaterialProperty,
 }
 
-impl<'a> AiIteratorAdapter<'a, MaterialProperty<'a>> for MaterialProperty<'a> {
-    type Inner = *const ffi::AiMaterialProperty;
+impl<'a> FromRaw<'a, MaterialProperty<'a>> for MaterialProperty<'a> {
+    type Raw = *const ffi::AiMaterialProperty;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiMaterialProperty) -> MaterialProperty<'a> {
-        MaterialProperty { raw: unsafe { inner.as_ref().expect("MaterialProperty pointer provided by Asssimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> MaterialProperty<'a> {
+        MaterialProperty { raw: unsafe { raw.as_ref().expect("MaterialProperty pointer provided by Asssimp was NULL") } }
     }
 }
 
@@ -25,21 +25,25 @@ pub struct Material<'a> {
     raw: &'a ffi::AiMaterial,
 }
 
-impl<'a> AiIteratorAdapter<'a, Material<'a>> for Material<'a> {
-    type Inner = *const ffi::AiMaterial;
+impl<'a> FromRaw<'a, Material<'a>> for Material<'a> {
+    type Raw = *const ffi::AiMaterial;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiMaterial) -> Material<'a> {
-        Material { raw: unsafe { inner.as_ref().expect("Material pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> Material<'a> {
+        Material { raw: unsafe { raw.as_ref().expect("Material pointer provided by Assimp was NULL") } }
     }
 }
 
 impl<'a> Material<'a> {
-    pub fn properties(&self) -> Option<AiIterator<'a, MaterialProperty<'a>>> {
+    pub fn properties(&self) -> Option<impl Iterator<Item = MaterialProperty<'a>>> {
         if self.raw.num_properties == 0 || self.raw.properties.is_null() || self.raw.num_allocated == 0 {
             None
         } else {
-            Some(AiIterator::from(unsafe { slice::from_raw_parts(self.raw.properties, self.raw.num_properties as usize) }))
+            Some(unsafe {
+                slice::from_raw_parts(self.raw.properties, self.raw.num_properties as usize)
+                    .iter()
+                    .map(MaterialProperty::from_raw)
+            })
         }
     }
 }

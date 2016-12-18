@@ -10,11 +10,13 @@ macro_rules! impl_ref_raw {
 macro_rules! impl_optional_iterator {
     ($name:ident, $field:ident, $num_field:ident, $ret:ident $(, {$(#[$attr:meta])*})*) => {
         $($(#[$attr])*)*
-        pub fn $name(&self) -> Option<AiIterator<'a, $ret<'a>>> {
+        pub fn $name(&self) -> Option<impl Iterator<Item = $ret<'a>>> {
             if self.raw.$num_field == 0 || self.raw.$field.is_null() { None } else {
-                Some(AiIterator::from(unsafe {
+                Some(unsafe{
                     slice::from_raw_parts(self.raw.$field, self.raw.$num_field as usize)
-                }))
+                    .iter()
+                    .map(|v| $ret::from_raw(v))
+                })
             }
         }
     }

@@ -6,8 +6,7 @@ use enum_primitive::FromPrimitive;
 use ::ffi;
 use ::ffi::*;
 
-use traits::Named;
-use iterator::*;
+use traits::{Named, FromRaw};
 
 enum_from_primitive! {
     #[repr(u32)]
@@ -26,12 +25,12 @@ pub struct Light<'a> {
     raw: &'a ffi::AiLight
 }
 
-impl<'a> AiIteratorAdapter<'a, Light<'a>> for Light<'a> {
-    type Inner = *const ffi::AiLight;
+impl<'a> FromRaw<'a, Light<'a>> for Light<'a> {
+    type Raw = *const ffi::AiLight;
 
     #[inline(always)]
-    fn from(inner: &'a *const ffi::AiLight) -> Light<'a> {
-        Light { raw: unsafe { inner.as_ref().expect("Light pointer provided by Assimp was NULL") } }
+    fn from_raw(raw: &'a Self::Raw) -> Light<'a> {
+        Light { raw: unsafe { raw.as_ref().expect("Light pointer provided by Assimp was NULL") } }
     }
 }
 
