@@ -27,10 +27,14 @@ impl<'a> FromRaw<'a, VertexWeight<'a>> for VertexWeight<'a> {
 
 impl<'a> VertexWeight<'a> {
     #[inline(always)]
-    pub fn id(&self) -> u32 { self.raw.vertex_id as u32 }
+    pub fn id(&self) -> u32 {
+        self.raw.vertex_id as u32
+    }
 
     #[inline(always)]
-    pub fn weight(&self) -> f32 { self.raw.weight as f32 }
+    pub fn weight(&self) -> f32 {
+        self.raw.weight as f32
+    }
 }
 
 pub struct Bone<'a> {
@@ -189,7 +193,7 @@ impl<'a> Mesh<'a> {
 
     /// Accumulates the indices for every face in the mesh. This is NOT zero-cost
     pub fn indices(&self) -> Option<&Vec<c_uint>> {
-        if let Some(indices) = self.indices.get_unevaluated() {
+        if let Some(indices) = self.indices.get_maybe() {
             Some(indices)
         } else {
             if let Some(faces) = self.faces() {
@@ -199,7 +203,7 @@ impl<'a> Mesh<'a> {
                     indices.extend_from_slice(&face.indices());
                 }
 
-                self.indices.set(indices);
+                unsafe { self.indices.set(indices); }
 
                 self.indices()
             } else {
@@ -210,5 +214,7 @@ impl<'a> Mesh<'a> {
 
     /// Get the index of the material for this mesh
     #[inline(always)]
-    pub fn material_index(&self) -> u32 { self.raw.material_index as u32 }
+    pub fn material_index(&self) -> u32 {
+        self.raw.material_index as u32
+    }
 }

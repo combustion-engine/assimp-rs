@@ -32,7 +32,9 @@ impl<'a> FromRaw<'a, Node<'a>> for Node<'a> {
 impl<'a> Node<'a> {
     /// Returns the transformation matrix of this node in the scene
     #[inline(always)]
-    pub fn transformation(&self) -> &AiMatrix4x4 { &self.raw.transformation }
+    pub fn transformation(&self) -> &AiMatrix4x4 {
+        &self.raw.transformation
+    }
 
     /// If the node has a parent, get it.
     pub fn parent(&self) -> Option<Node<'a>> {

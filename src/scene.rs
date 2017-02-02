@@ -66,10 +66,14 @@ impl<'a> Scene<'a> {
     }
 
     #[inline]
-    pub fn pathbuf(&self) -> &PathBuf { &self.path }
+    pub fn pathbuf(&self) -> &PathBuf {
+        &self.path
+    }
 
     #[inline]
-    pub fn path(&self) -> &Path { self.path.as_path() }
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
+    }
 
     pub fn import<P: AsRef<Path>>(path: P, effects: Option<PostprocessEffect>) -> AiResult<Scene<'a>> {
         let path = path.as_ref();

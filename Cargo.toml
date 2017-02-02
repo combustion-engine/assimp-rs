@@ -12,14 +12,14 @@ vec_map = "0.6.0"
 
 [dependencies.assimp-sys]
 optional = true
-path = "../assimp-sys"
+git = "https://github.com/combustion-engine/assimp-sys"
 
 [dependencies.lazy]
-path = "../lazy"
+git = "https://github.com/combustion-engine/lazy"
 
 [dependencies.nalgebra]
 optional = true
-path = "../nalgebra"
+git = "https://github.com/combustion-engine/nalgebra"
 
 [features]
 compat = ["nalgebra"]

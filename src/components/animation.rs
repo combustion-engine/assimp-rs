@@ -26,10 +26,14 @@ impl<'a> FromRaw<'a, VectorKey<'a>> for VectorKey<'a> {
 
 impl<'a> VectorKey<'a> {
     #[inline(always)]
-    pub fn time(&self) -> f64 { self.raw.time as f64 }
+    pub fn time(&self) -> f64 {
+        self.raw.time as f64
+    }
 
     #[inline(always)]
-    pub fn value(&self) -> AiVector3D { self.raw.value }
+    pub fn value(&self) -> AiVector3D {
+        self.raw.value
+    }
 }
 
 pub struct QuaternionKey<'a> {
@@ -47,10 +51,14 @@ impl<'a> FromRaw<'a, QuaternionKey<'a>> for QuaternionKey<'a> {
 
 impl<'a> QuaternionKey<'a> {
     #[inline(always)]
-    pub fn time(&self) -> f64 { self.raw.time as f64 }
+    pub fn time(&self) -> f64 {
+        self.raw.time as f64
+    }
 
     #[inline(always)]
-    pub fn value(&self) -> AiQuaternion { self.raw.value }
+    pub fn value(&self) -> AiQuaternion {
+        self.raw.value
+    }
 }
 
 pub struct MeshKey<'a> {
@@ -68,10 +76,14 @@ impl<'a> FromRaw<'a, MeshKey<'a>> for MeshKey<'a> {
 
 impl<'a> MeshKey<'a> {
     #[inline(always)]
-    pub fn time(&self) -> f64 { self.raw.time as f64 }
+    pub fn time(&self) -> f64 {
+        self.raw.time as f64
+    }
 
     #[inline(always)]
-    pub fn value(&self) -> c_uint { self.raw.value }
+    pub fn value(&self) -> c_uint {
+        self.raw.value
+    }
 
     #[inline]
     pub fn mesh_from_scene(&self, scene: &'a Scene<'a>) -> Option<Mesh<'a>> {
@@ -144,10 +156,14 @@ impl<'a> FromRaw<'a, Animation<'a>> for Animation<'a> {
 
 impl<'a> Animation<'a> {
     #[inline(always)]
-    pub fn duration(&self) -> f64 { self.raw.duration as f64 }
+    pub fn duration(&self) -> f64 {
+        self.raw.duration as f64
+    }
 
     #[inline(always)]
-    pub fn ticks_per_second(&self) -> f64 { self.raw.ticks_per_second as f64 }
+    pub fn ticks_per_second(&self) -> f64 {
+        self.raw.ticks_per_second as f64
+    }
 
     impl_optional_iterator!(node_channels, channels, num_channels, NodeAnimation);
     impl_optional_iterator!(mesh_channels, mesh_channels, num_mesh_channels, MeshAnimation);

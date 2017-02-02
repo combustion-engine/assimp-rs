@@ -47,13 +47,19 @@ impl<'a> Light<'a> {
     }
 
     #[inline(always)]
-    pub fn position(&self) -> AiVector3D { self.raw.position }
+    pub fn position(&self) -> AiVector3D {
+        self.raw.position
+    }
 
     #[inline(always)]
-    pub fn direction(&self) -> AiVector3D { self.raw.direction }
+    pub fn direction(&self) -> AiVector3D {
+        self.raw.direction
+    }
 
     #[inline(always)]
-    pub fn up(&self) -> AiVector3D { self.raw.up }
+    pub fn up(&self) -> AiVector3D {
+        self.raw.up
+    }
 
     #[inline]
     pub fn attenuation(&self) -> (f32, f32, f32) {
@@ -65,13 +71,19 @@ impl<'a> Light<'a> {
     }
 
     #[inline(always)]
-    pub fn diffuse(&self) -> AiColor3D { self.raw.diffuse_color }
+    pub fn diffuse(&self) -> AiColor3D {
+        self.raw.diffuse_color
+    }
 
     #[inline(always)]
-    pub fn specular(&self) -> AiColor3D { self.raw.specular_color }
+    pub fn specular(&self) -> AiColor3D {
+        self.raw.specular_color
+    }
 
     #[inline(always)]
-    pub fn ambient(&self) -> AiColor3D { self.raw.ambient_color }
+    pub fn ambient(&self) -> AiColor3D {
+        self.raw.ambient_color
+    }
 
     #[inline]
     pub fn cone(&self) -> (f32, f32) {
@@ -82,7 +94,9 @@ impl<'a> Light<'a> {
     }
 
     #[inline(always)]
-    pub fn size(&self) -> AiVector2D { self.raw.size }
+    pub fn size(&self) -> AiVector2D {
+        self.raw.size
+    }
 }
 
 impl<'a> Debug for Light<'a> {

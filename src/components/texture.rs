@@ -20,10 +20,14 @@ impl<'a> FromRaw<'a, Texture<'a>> for Texture<'a> {
 
 impl<'a> Texture<'a> {
     #[inline]
-    pub fn width(&self) -> u32 { self.raw.width as u32 }
+    pub fn width(&self) -> u32 {
+        self.raw.width as u32
+    }
 
     #[inline]
-    pub fn height(&self) -> u32 { self.raw.height as u32 }
+    pub fn height(&self) -> u32 {
+        self.raw.height as u32
+    }
 
     pub fn check_format(&self, format: &str) -> AiResult<bool> {
         if format.len() > ffi::ARCH_FORMAT_HINT_LENGTH {

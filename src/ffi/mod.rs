@@ -197,7 +197,9 @@ impl From<AiString> for String {
 }
 
 impl Clone for AiString {
-    fn clone(&self) -> AiString { AiString { ..*self } }
+    fn clone(&self) -> AiString {
+        AiString { ..*self }
+    }
 }
 
 impl Display for AiString {
