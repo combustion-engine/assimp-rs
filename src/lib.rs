@@ -1,5 +1,4 @@
-#![feature(plugin, conservative_impl_trait)]
-#![plugin(phf_macros)]
+#![feature(conservative_impl_trait)]
 #![allow(dead_code)]
 
 extern crate libc;
@@ -11,7 +10,6 @@ extern crate lazy_static;
 extern crate enum_primitive;
 extern crate vec_map;
 extern crate lazy;
-extern crate phf;
 
 #[cfg(feature = "compat")]
 extern crate nalgebra;
