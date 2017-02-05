@@ -1,4 +1,6 @@
 //! Contains all formats and their file extensions supported by Assimp
+//!
+//! See http://www.assimp.org/main_features_formats.html
 
 use phf;
 
@@ -114,3 +116,39 @@ pub static IMPORT_EXTENSIONS: phf::Map<&'static str, &'static [&'static str]> = 
     "hmp"       => &["3D GameStudio (3DGS) Terrain"]                        as &'static [&'static str],
     "ndo"       => &["Izware Nendo"]                                        as &'static [&'static str],
 };
+
+/// Specific file formats that are only partially supported by Assimp
+pub static PARTIALLY_SUPPORTED_IMPORT_FORMATS: phf::Set<&'static str> = phf_set! {
+    "AutoCAD DXF",
+    "TrueSpace",
+    "CharacterStudio Motion",
+    "Irrlicht Scene",
+    "Return to Castle Wolfenstein",
+    "Valve Model",
+    "Open Game Engine Exchange",
+    "Unreal"
+};
+
+/// Specific file extensions that correlate to formats only partially supported by Assimp
+pub static PARTIALLY_SUPPORTED_IMPORT_EXTENSIONS: phf::Set<&'static str> = phf_set! {
+    "dxf", "cob", "scn", "csm", "irr", "mdc", "smd", "vta", "ogex", "3d"
+};
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_matching_import_formats() {
+        for format in PARTIALLY_SUPPORTED_IMPORT_FORMATS.iter() {
+            assert!(IMPORT_FORMATS.contains_key(format));
+        }
+    }
+
+    #[test]
+    fn test_matching_import_extensions() {
+        for ext in PARTIALLY_SUPPORTED_IMPORT_EXTENSIONS.iter() {
+            assert!(IMPORT_EXTENSIONS.contains_key(ext));
+        }
+    }
+}
