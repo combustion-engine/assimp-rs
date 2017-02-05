@@ -1,4 +1,5 @@
-#![feature(conservative_impl_trait)]
+#![feature(plugin, conservative_impl_trait)]
+#![plugin(phf_macros)]
 #![allow(dead_code)]
 
 extern crate libc;
@@ -10,6 +11,7 @@ extern crate lazy_static;
 extern crate enum_primitive;
 extern crate vec_map;
 extern crate lazy;
+extern crate phf;
 
 #[cfg(feature = "compat")]
 extern crate nalgebra;
@@ -24,6 +26,7 @@ pub mod postprocess;
 #[macro_use]
 pub mod components;
 pub mod scene;
+pub mod formats;
 
 pub use ffi::{AiVector3D, AiVector2D, AiMatrix3x3, AiMatrix4x4};
 pub use error::*;
