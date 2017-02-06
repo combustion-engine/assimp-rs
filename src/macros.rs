@@ -2,6 +2,8 @@ macro_rules! c_abort {
     ($($fmt:expr),*) => {{
         let _ = writeln!(&mut ::std::io::stderr(), $($fmt),*);
 
+        let _ = ::std::io::stderr().flush();
+
         #[allow(unused_unsafe)]
         unsafe { ::libc::abort(); }
     }}
