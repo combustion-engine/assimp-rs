@@ -25,7 +25,9 @@ fn main() {
         .transform_vertices(true)
         .gen_smooth_normals(false);
 
-    let scene: Scene = Scene::import("./examples/sphere.dae", Some(effects.build())).unwrap();
+    let mut io = io::DefaultIO::default();
+
+    let scene: Scene = Scene::import_from("./examples/sphere.dae", None, &mut io).unwrap();
 
     println!("Scene loaded.");
 

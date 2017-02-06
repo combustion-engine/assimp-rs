@@ -11,6 +11,9 @@ extern crate enum_primitive;
 extern crate vec_map;
 extern crate lazy;
 
+#[macro_use]
+extern crate trace_error;
+
 #[cfg(feature = "compat")]
 extern crate nalgebra;
 

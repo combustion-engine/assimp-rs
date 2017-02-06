@@ -33,7 +33,7 @@ impl<'a> Texture<'a> {
         if format.len() > ffi::ARCH_FORMAT_HINT_LENGTH {
             Ok(false)
         } else {
-            let c_str = try!(CString::new(format));
+            let c_str = try_throw!(CString::new(format));
 
             Ok(unsafe {
                 c_str.as_ref() == CStr::from_ptr(self.raw.arch_format_hint.as_ptr())

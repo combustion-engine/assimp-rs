@@ -83,7 +83,7 @@ impl<'a> Scene<'a> {
         let scene_ptr = unsafe {
             ffi::aiImportFile(c_path.as_ptr(), match effects {
                 None => 0,
-                Some(flags) => flags.bits()
+                Some(flags) => flags.bits(),
             })
         };
 
@@ -96,7 +96,34 @@ impl<'a> Scene<'a> {
         if !scene.valid() {
             check_assimp_errors!();
 
-            return Err(AiError::InvalidScene);
+            throw!(AiError::InvalidScene);
+        }
+
+        Ok(scene)
+    }
+
+    pub fn import_from<'b, P: AsRef<Path>, IO>(path: P, effects: Option<PostprocessEffect>, mut io: &'b mut IO) -> AiResult<Scene<'a>> where 'a: 'b, IO: ::io::AssimpIO<'b> {
+        let path = path.as_ref();
+
+        let c_path = CString::new(path.to_str().unwrap()).unwrap();
+
+        let scene_ptr = unsafe {
+            ffi::aiImportFileEx(c_path.as_ptr(), match effects {
+                None => 0,
+                Some(flags) => flags.bits(),
+            }, io.get())
+        };
+
+        let scene = Scene {
+            scene_ptr: scene_ptr,
+            path: path.to_path_buf(),
+            _lifetime: PhantomData,
+        };
+
+        if !scene.valid() {
+            check_assimp_errors!();
+
+            throw!(AiError::InvalidScene);
         }
 
         Ok(scene)
@@ -120,7 +147,7 @@ impl<'a> Scene<'a> {
         if !scene.valid() {
             check_assimp_errors!();
 
-            return Err(AiError::InvalidScene);
+            throw!(AiError::InvalidScene);
         }
 
         //Don't run the destructor on self, since we took ownership of the pointer
@@ -128,7 +155,6 @@ impl<'a> Scene<'a> {
 
         Ok(scene)
     }
-
 
     impl_scene_iterator!(meshes, num_meshes, Mesh);
     impl_scene_iterator!(materials, num_materials, Material);
