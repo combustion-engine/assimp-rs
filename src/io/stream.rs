@@ -57,16 +57,17 @@ impl StreamIO {
 }
 
 pub mod procs {
-    use libc::{c_char, size_t};
+    use libc::{c_char, size_t, c_int};
 
     use std::io::prelude::*;
+    use std::io::SeekFrom;
     use std::fs::File;
     use std::ffi::CStr;
     use std::ptr;
     use std::slice;
     use std::sync::atomic::Ordering;
 
-    use ::ffi::{AiFile, AiFileIO, AiUserData};
+    use ::ffi::{self, AiFile, AiFileIO, AiUserData};
 
     use super::{StreamData, AiStream};
 
@@ -98,13 +99,13 @@ pub mod procs {
         };
 
         let ai_file = box AiFile {
-            user_data: Box::into_raw(stream) as AiUserData,
+            user_data: Box::into_raw(box stream) as AiUserData,
             write: stream_write_proc,
             flush: stream_flush_proc,
-            read: ::io::read_only::procs::ro_stream_read_proc,
-            tell: ::io::read_only::procs::ro_stream_tell_proc,
-            size: ::io::read_only::procs::ro_stream_tell_size_proc,
-            seek: ::io::read_only::procs::ro_stream_seek_proc,
+            read: stream_read_proc,
+            tell: stream_tell_proc,
+            size: stream_tell_size_proc,
+            seek: stream_seek_proc,
         };
 
         Box::into_raw(ai_file)
@@ -116,14 +117,23 @@ pub mod procs {
 
         let ai_file = unsafe { Box::from_raw(file) };
 
-        let stream_data: *mut Box<StreamData> = unsafe { (*file_io).user_data as *mut _ };
-        let stream: *mut Box<AiStream> = ai_file.user_data as *mut _;
+        c_assert!(!ai_file.user_data.is_null());
 
-        c_assert!(!stream_data.is_null());
-        c_assert!(!stream.is_null());
+        // Turn the file back into a box to drop it
+        unsafe { Box::from_raw(ai_file.user_data as *mut Box<AiStream>) };
+    }
 
-        unsafe { Box::from_raw(stream_data); }
-        unsafe { Box::from_raw(stream); }
+    pub extern "C" fn stream_read_proc(file: *mut AiFile, buffer: *mut c_char, size: size_t, count: size_t) -> size_t {
+        let mut stream: &mut Box<AiStream> = user_data!(file);
+
+        let mut buffer = unsafe { slice::from_raw_parts_mut(buffer as *mut u8, size as usize * count as usize) };
+
+        match stream.read(buffer) {
+            Ok(amt) => amt as size_t,
+            Err(err) => {
+                c_abort!("Failed to read data from file: {}", err);
+            }
+        }
     }
 
     pub extern "C" fn stream_write_proc(file: *mut AiFile, buffer: *const c_char, size: size_t, count: size_t) -> size_t {
@@ -137,6 +147,47 @@ pub mod procs {
                 c_abort!("Failed to write data to file: {}", err);
             }
         }
+    }
+
+    pub extern "C" fn stream_tell_proc(file: *mut AiFile) -> size_t {
+        let stream: &mut Box<AiStream> = user_data!(file);
+
+        match stream.seek(SeekFrom::Current(0)) {
+            Ok(pos) => pos as size_t,
+            Err(err) => c_abort!("Failed to set stream position: {}", err),
+        }
+    }
+
+    pub extern "C" fn stream_tell_size_proc(file: *mut AiFile) -> size_t {
+        let mut stream: &mut Box<AiStream> = user_data!(file);
+
+        let cur = match stream.seek(SeekFrom::Current(0)) {
+            Ok(pos) => pos,
+            Err(err) => c_abort!("Failed to get stream size: {}", err),
+        };
+
+        let size = match stream.seek(SeekFrom::End(0)) {
+            Ok(pos) => pos,
+            Err(err) => c_abort!("Failed to get stream size: {}", err),
+        };
+
+        match stream.seek(SeekFrom::Start(cur)) {
+            Ok(_) => size as size_t,
+            Err(err) => c_abort!("Failed to get stream size: {}", err),
+        }
+    }
+
+    pub extern "C" fn stream_seek_proc(file: *mut AiFile, pos: size_t, origin: c_int) -> c_int {
+        let mut stream: &mut Box<AiStream> = user_data!(file);
+
+        let origin = match origin {
+            ffi::AI_ORIGIN_SET => SeekFrom::Start(pos as u64),
+            ffi::AI_ORIGIN_CUR => SeekFrom::Current(pos as i64),
+            ffi::AI_ORIGIN_END => SeekFrom::End(pos as i64),
+            _ => c_abort!("Invalid Seek origin"),
+        };
+
+        if stream.seek(origin).is_ok() { ffi::AI_SUCCESS } else { ffi::AI_FAILURE }
     }
 
     pub extern "C" fn stream_flush_proc(file: *mut AiFile) {

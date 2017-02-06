@@ -10,7 +10,7 @@ pub struct ReadOnlyStreamIO {
 
 impl Drop for ReadOnlyStreamIO {
     fn drop(&mut self) {
-        assert!(self.io.user_data.is_null());
+        assert!(!self.io.user_data.is_null());
 
         unsafe { Box::from_raw(self.io.user_data as *mut ReadOnlyStreamData); }
     }
@@ -88,16 +88,16 @@ pub mod procs {
             }
         }
 
-        let stream = if let Some(stream) = stream {
+        let stream: Box<AiReadOnlyStream> = if let Some(stream) = stream {
             stream
         } else if let Ok(file) = File::open(path) {
-            box file as Box<AiReadOnlyStream>
+            Box::new(file) as Box<AiReadOnlyStream>
         } else {
-            return ptr::null_mut()
+            return ptr::null_mut();
         };
 
         let ai_file = box AiFile {
-            user_data: Box::into_raw(stream) as AiUserData,
+            user_data: Box::into_raw(box stream) as AiUserData,
             read: ro_stream_read_proc,
             write: ro_stream_write_proc,
             tell: ro_stream_tell_proc,
@@ -115,14 +115,10 @@ pub mod procs {
 
         let ai_file = unsafe { Box::from_raw(file) };
 
-        let stream_data: *mut Box<ReadOnlyStreamData> = unsafe { (*file_io).user_data as *mut _ };
-        let stream: *mut Box<AiReadOnlyStream> = ai_file.user_data as *mut _;
+        c_assert!(!ai_file.user_data.is_null());
 
-        c_assert!(!stream_data.is_null());
-        c_assert!(!stream.is_null());
-
-        unsafe { Box::from_raw(stream_data); }
-        unsafe { Box::from_raw(stream); }
+        // Turn the file back into a box to drop it
+        unsafe { Box::from_raw(ai_file.user_data as *mut Box<AiReadOnlyStream>) };
     }
 
     pub extern "C" fn ro_stream_read_proc(file: *mut AiFile, buffer: *mut c_char, size: size_t, count: size_t) -> size_t {
@@ -147,7 +143,7 @@ pub mod procs {
 
         match stream.seek(SeekFrom::Current(0)) {
             Ok(pos) => pos as size_t,
-            Err(err) => c_abort!("Failed to stream size: {}", err),
+            Err(err) => c_abort!("Failed to set stream position: {}", err),
         }
     }
 
@@ -156,17 +152,17 @@ pub mod procs {
 
         let cur = match stream.seek(SeekFrom::Current(0)) {
             Ok(pos) => pos,
-            Err(err) => c_abort!("Failed to stream size: {}", err),
+            Err(err) => c_abort!("Failed to get stream size: {}", err),
         };
 
         let size = match stream.seek(SeekFrom::End(0)) {
             Ok(pos) => pos,
-            Err(err) => c_abort!("Failed to stream size: {}", err),
+            Err(err) => c_abort!("Failed to get stream size: {}", err),
         };
 
         match stream.seek(SeekFrom::Start(cur)) {
             Ok(_) => size as size_t,
-            Err(err) => c_abort!("Failed to stream size: {}", err),
+            Err(err) => c_abort!("Failed to get stream size: {}", err),
         }
     }
 

@@ -73,12 +73,10 @@ pub mod procs {
 
         let ai_file = unsafe { Box::from_raw(file) };
 
-        let file: *mut File = ai_file.user_data as *mut _;
-
-        c_assert!(!file.is_null());
+        c_assert!(!ai_file.user_data.is_null());
 
         // Turn the file back into a box to drop it
-        unsafe { Box::from_raw(file); }
+        unsafe { Box::from_raw(ai_file.user_data as *mut File); }
     }
 
     pub extern "C" fn default_read_proc(file: *mut AiFile, buffer: *mut c_char, size: size_t, count: size_t) -> size_t {
