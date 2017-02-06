@@ -41,6 +41,18 @@ pub use self::types::*;
 pub const FALSE: c_int = 0;
 pub const TRUE: c_int = 1;
 
+pub const AI_RETURN_SUCCESS: c_int = 0x0;
+pub const AI_RETURN_FAILURE: c_int = -0x1;
+pub const AI_RETURN_OUTOFMEMORY: c_int = -0x2;
+
+pub const AI_SUCCESS: c_int = AI_RETURN_SUCCESS;
+pub const AI_FAILURE: c_int = AI_RETURN_FAILURE;
+pub const AI_OUTOFMEMORY: c_int = AI_RETURN_OUTOFMEMORY;
+
+pub const AI_ORIGIN_SET: c_int = 0x0;
+pub const AI_ORIGIN_CUR: c_int = 0x1;
+pub const AI_ORIGIN_END: c_int = 0x2;
+
 pub const AI_METADATA_TYPE_BOOL: c_int = 0;
 pub const AI_METADATA_TYPE_INT32: c_int = 1;
 pub const AI_METADATA_TYPE_UINT64: c_int = 2;
@@ -527,10 +539,45 @@ pub struct AiScene {
     _private: *const c_void,
 }
 
+pub type AiFileReadProc = extern "C" fn(file: *mut AiFile, buffer: *mut c_char, size: size_t, count: size_t) -> size_t;
+
+pub type AiFileWriteProc = extern "C" fn(file: *mut AiFile, buffer: *const c_char, size: size_t, count: size_t) -> size_t;
+
+pub type AiFileTellProc = extern "C" fn(file: *mut AiFile) -> size_t;
+
+pub type AiFileFlushProc = extern "C" fn(file: *mut AiFile);
+
+pub type AiFileSeekProc = extern "C" fn(file: *mut AiFile, pos: size_t, origin: c_int) -> c_int;
+
+pub type AiFileOpenProc = extern "C" fn(file_io: *mut AiFileIO, path: *const c_char, mode: *const c_char) -> *mut AiFile;
+
+pub type AiFileCloseProc = extern "C" fn(file_io: *mut AiFileIO, file: *mut AiFile);
+
+pub type AiUserData = *mut c_char;
+
+#[repr(C)]
+pub struct AiFileIO {
+    pub open: AiFileOpenProc,
+    pub close: AiFileCloseProc,
+    pub user_data: AiUserData,
+}
+
+#[repr(C)]
+pub struct AiFile {
+    pub read: AiFileReadProc,
+    pub write: AiFileWriteProc,
+    pub tell: AiFileTellProc,
+    pub size: AiFileTellProc,
+    pub seek: AiFileSeekProc,
+    pub flush: AiFileFlushProc,
+    pub user_data: AiUserData,
+}
+
 extern "C" {
     pub fn aiApplyPostProcessing(scene: *const AiScene, flags: c_uint) -> *const AiScene;
 
     pub fn aiDetachAllLogStreams();
+
     pub fn aiEnableVerboseLogging(enable: c_int);
 
     pub fn aiGetErrorString() -> *const c_char;
@@ -538,6 +585,10 @@ extern "C" {
     pub fn aiGetExtensionList(out: *mut AiString);
 
     pub fn aiImportFile(path: *const c_char, flags: c_uint) -> *const AiScene;
+
+    pub fn aiImportFileEx(path: *const c_char, flags: c_uint, file_io: *mut AiFileIO) -> *const AiScene;
+
+    pub fn aiImportFileFromMemory(buffer: *const c_char, length: c_uint, flags: c_uint, path_hint: *const c_char) -> *const AiScene;
 
     pub fn aiIsExtensionSupported(extension: *const c_char) -> c_int;
 
