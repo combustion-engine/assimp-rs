@@ -195,20 +195,18 @@ impl<'a> Mesh<'a> {
     pub fn indices(&self) -> Option<&Vec<c_uint>> {
         if let Some(indices) = self.indices.get_maybe() {
             Some(indices)
-        } else {
-            if let Some(faces) = self.faces() {
-                let mut indices = Vec::new();
+        } else if let Some(faces) = self.faces() {
+            let mut indices = Vec::new();
 
-                for ref face in faces {
-                    indices.extend_from_slice(&face.indices());
-                }
-
-                unsafe { self.indices.set(indices); }
-
-                self.indices()
-            } else {
-                None
+            for ref face in faces {
+                indices.extend_from_slice(face.indices());
             }
+
+            unsafe { self.indices.set(indices); }
+
+            self.indices()
+        } else {
+            None
         }
     }
 

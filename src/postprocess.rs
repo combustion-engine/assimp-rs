@@ -84,6 +84,12 @@ macro_rules! impl_builder_preset {
     }
 }
 
+impl Default for PostprocessEffectBuilder {
+    fn default() -> PostprocessEffectBuilder {
+        PostprocessEffectBuilder::new()
+    }
+}
+
 impl PostprocessEffectBuilder {
     #[inline(always)]
     pub fn new() -> PostprocessEffectBuilder {
