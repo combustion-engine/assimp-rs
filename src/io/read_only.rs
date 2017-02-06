@@ -70,11 +70,9 @@ pub mod procs {
     use super::{ReadOnlyStreamData, AiReadOnlyStream};
 
     pub extern "C" fn ro_stream_open_proc(file_io: *mut AiFileIO, path: *const c_char, _mode: *const c_char) -> *mut AiFile {
-        c_assert!(!file_io.is_null());
-
         let mut stream_data: &mut ReadOnlyStreamData = user_data!(file_io);
 
-        let path = if let Ok(path) = unsafe { CStr::from_ptr(path) }.to_str() { path } else {
+        let path = if let Ok(path) = unsafe { CStr::from_ptr(path).to_str() } { path } else {
             return ptr::null_mut();
         };
 

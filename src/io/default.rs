@@ -46,7 +46,7 @@ pub mod procs {
         c_assert!(!file_io.is_null());
         c_assert!(!path.is_null());
 
-        let path = if let Ok(path) = unsafe { CStr::from_ptr(path) }.to_str() { path } else {
+        let path = if let Ok(path) = unsafe { CStr::from_ptr(path).to_str() } { path } else {
             return ptr::null_mut();
         };
 
