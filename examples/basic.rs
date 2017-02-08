@@ -1,6 +1,8 @@
 extern crate assimp;
 
 use std::iter::repeat;
+use std::fs::File;
+
 use assimp::*;
 
 fn format_node<'a>(scene: &'a Scene<'a>, node: &'a Node<'a>, depth: usize) {
@@ -25,7 +27,9 @@ fn main() {
         .transform_vertices(true)
         .gen_smooth_normals(false);
 
-    let mut io = io::DefaultIO::default();
+    let mut io = io::CustomIO::callback(|path| {
+        File::open(path)
+    });
 
     let scene: Scene = Scene::import_from("./examples/sphere.dae", None, &mut io).unwrap();
 
