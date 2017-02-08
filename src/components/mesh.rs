@@ -1,9 +1,6 @@
 use std::slice;
 use libc::c_uint;
 use std::borrow::Cow;
-use std::sync::Arc;
-
-use lazy;
 
 use enum_primitive::FromPrimitive;
 
@@ -112,18 +109,9 @@ enum_from_primitive! {
     }
 }
 
+#[derive(Clone)]
 pub struct Mesh<'a> {
-    raw: &'a ffi::AiMesh,
-    indices: Arc<lazy::Lazy<Vec<c_uint>>>
-}
-
-impl<'a> Clone for Mesh<'a> {
-    fn clone(&self) -> Mesh<'a> {
-        Mesh {
-            raw: self.raw,
-            indices: self.indices.clone()
-        }
-    }
+    raw: &'a ffi::AiMesh
 }
 
 impl<'a> FromRaw<'a, Mesh<'a>> for Mesh<'a> {
@@ -133,7 +121,6 @@ impl<'a> FromRaw<'a, Mesh<'a>> for Mesh<'a> {
     fn from_raw(raw: &'a Self::Raw) -> Mesh<'a> {
         Mesh {
             raw: unsafe { raw.as_ref().expect("Mesh pointer provided by Assimp was NULL") },
-            indices: Arc::default()
         }
     }
 }
@@ -182,29 +169,35 @@ impl<'a> Mesh<'a> {
         }
     }
 
-    /// Counts the number of indices for the mesh. This is NOT zero-cost
+    /// Counts the number of indices for the mesh.
+    ///
+    /// This is NOT zero-cost, as it has to count all indices for all faces.
     pub fn count_indices(&self) -> Option<usize> {
-        if let Some(indices) = self.indices() {
-            Some(indices.len())
+        if let Some(faces) = self.faces() {
+            let mut count = 0;
+
+            for ref face in faces {
+                count += face.raw.num_indices as usize;
+            }
+
+            Some(count)
         } else {
             None
         }
     }
 
-    /// Accumulates the indices for every face in the mesh. This is NOT zero-cost
-    pub fn indices(&self) -> Option<&Vec<c_uint>> {
-        if let Some(indices) = self.indices.get_maybe() {
-            Some(indices)
-        } else if let Some(faces) = self.faces() {
+    /// Accumulates the indices for every face in the mesh.
+    ///
+    /// This is NOT zero-cost, as it has to accumulate all indices for all faces.
+    pub fn indices(&self) -> Option<Vec<c_uint>> {
+        if let Some(faces) = self.faces() {
             let mut indices = Vec::new();
 
             for ref face in faces {
                 indices.extend_from_slice(face.indices());
             }
 
-            unsafe { self.indices.set(indices); }
-
-            self.indices()
+            Some(indices)
         } else {
             None
         }

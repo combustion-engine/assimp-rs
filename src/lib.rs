@@ -9,7 +9,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate enum_primitive;
 extern crate vec_map;
-extern crate lazy;
 
 #[macro_use]
 extern crate trace_error;
