@@ -4,6 +4,7 @@ use std::io::{self, SeekFrom};
 use std::fs::File;
 use std::marker::PhantomData;
 use std::sync::Mutex;
+use std::ops::{Deref, DerefMut};
 
 use ::ffi::{AiFileIO, AiUserData};
 
@@ -19,6 +20,11 @@ macro_rules! user_data {
     }}
 }
 
+/// Represents a type which can provide access to a set of callbacks which can
+/// be used within Assimp's custom IO API.
+///
+/// It is inadvisable to use this directly, as it requires knowledge of the C API.
+/// Try using `CustomIO` instead.
 pub trait AssimpIO<'a> {
     fn get(&'a mut self) -> &'a mut ::ffi::AiFileIO;
 }
@@ -37,7 +43,43 @@ impl<T> IOStream for T where T: Seek + Read + Write + 'static {}
 ///
 /// **WARNING**: Please do **NOT** use this outside of custom Assimp IO.
 /// This is only a direct result of the C-APIs nature.
-pub struct ReadOnlyStream<R: Seek + Read + 'static>(R);
+pub struct ReadOnlyStream<R>(R) where R: Seek + Read + 'static;
+
+impl<R> ReadOnlyStream<R> where R: Seek + Read + 'static {
+    /// Create a new `ReadOnlyStream` from the given stream.
+    pub fn new(stream: R) -> ReadOnlyStream<R> {
+        ReadOnlyStream(stream)
+    }
+
+    /// Gets a reference to the underlying reader.
+    pub fn get_ref(&self) -> &R {
+        &self.0
+    }
+
+    /// Gets a mutable reference to the underlying reader.
+    pub fn get_mut(&mut self) -> &mut R {
+        &mut self.0
+    }
+
+    /// Unwraps the `ReadOnlyStream` and returns the underlying reader.
+    pub fn into_inner(self) -> R {
+        self.0
+    }
+}
+
+impl<R> Deref for ReadOnlyStream<R> where R: Seek + Read + 'static {
+    type Target = R;
+
+    fn deref(&self) -> &R {
+        &self.0
+    }
+}
+
+impl<R> DerefMut for ReadOnlyStream<R> where R: Seek + Read + 'static {
+    fn deref_mut(&mut self) -> &mut R {
+        &mut self.0
+    }
+}
 
 impl<R> Read for ReadOnlyStream<R> where R: Seek + Read + 'static {
     #[inline(always)]
@@ -62,6 +104,30 @@ impl<R> Write for ReadOnlyStream<R> where R: Seek + Read + 'static {
     #[inline(always)]
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
+    }
+}
+
+impl<R> BufRead for ReadOnlyStream<R> where R: Seek + Read + BufRead + 'static {
+    #[inline(always)]
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        self.0.fill_buf()
+    }
+
+    #[inline(always)]
+    fn consume(&mut self, amt: usize) {
+        self.0.consume(amt)
+    }
+}
+
+impl<R> AsRef<R> for ReadOnlyStream<R> where R: Seek + Read + 'static {
+    fn as_ref(&self) -> &R {
+        self.get_ref()
+    }
+}
+
+impl<R> AsMut<R> for ReadOnlyStream<R> where R: Seek + Read + 'static {
+    fn as_mut(&mut self) -> &mut R {
+        self.get_mut()
     }
 }
 
@@ -138,6 +204,7 @@ impl<S, H> Drop for CustomIO<S, H> where S: IOStream, H: IOHandler<S> {
 }
 
 impl<S, H> CustomIO<S, H> where S: IOStream, H: IOHandler<S> {
+    /// Create a new `CustomIO` instance using the given `IOHandler`
     pub fn new(handler: H) -> CustomIO<S, H> {
         CustomIO {
             io: AiFileIO {
@@ -151,12 +218,14 @@ impl<S, H> CustomIO<S, H> where S: IOStream, H: IOHandler<S> {
 }
 
 impl Default for CustomIO<File, DefaultIOHandler> {
+    /// Create a default `File`-based `CustomIO` instance
     fn default() -> CustomIO<File, DefaultIOHandler> {
         CustomIO::new(DefaultIOHandler)
     }
 }
 
 impl<S: IOStream> CustomIO<S, CallbackIOHandler<S>> {
+    /// Create a new `CustomIO` with a `CallbackIOHandler` directly from a provided callback.
     pub fn callback<F>(cb: F) -> CustomIO<S, CallbackIOHandler<S>> where F: FnMut(&Path) -> io::Result<S> + 'static {
         CustomIO::new(CallbackIOHandler::new(cb))
     }
