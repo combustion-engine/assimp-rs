@@ -189,6 +189,7 @@ pub struct CustomIO<S, H> where S: IOStream, H: IOHandler<S> {
 }
 
 impl<'a, S, H> AssimpIO<'a> for CustomIO<S, H> where S: IOStream, H: IOHandler<S> {
+    /// Gets a reference to the `AiFileIO` handler
     fn get(&'a mut self) -> &'a mut AiFileIO {
         &mut self.io
     }
@@ -245,6 +246,9 @@ mod procs {
 
     use super::{IOStream, IOHandler};
 
+    /// Opens a new file via the given handler and boxes it up (and subsequently turns it into a raw pointer) to be used later
+    ///
+    /// By using template parameters on the procedures, we don't need to fool around with trait objects and double boxing
     pub extern "C" fn open_proc<S, H>(file_io: *mut AiFileIO, path: *const c_char, _mode: *const c_char) -> *mut AiFile where S: IOStream, H: IOHandler<S> {
         let handler: &mut H = user_data!(file_io);
 
@@ -269,6 +273,7 @@ mod procs {
         })
     }
 
+    /// Closes a stream by unboxing it and passing it to the handler's close function, which usually just drops it
     pub extern "C" fn close_proc<S, H>(file_io: *mut AiFileIO, file: *mut AiFile) where S: IOStream, H: IOHandler<S> {
         let handler: &mut H = user_data!(file_io);
 
@@ -283,7 +288,10 @@ mod procs {
         c_assert!(handler.close(*file).is_ok());
     }
 
+    /// Reads bytes from the stream into the given buffer
     pub extern "C" fn read_proc<S>(file: *mut AiFile, buffer: *mut c_char, size: size_t, count: size_t) -> size_t where S: IOStream {
+        c_assert!(!buffer.is_null());
+
         let mut stream: &mut S = user_data!(file);
 
         let mut buffer = unsafe { slice::from_raw_parts_mut(buffer as *mut u8, size as usize * count as usize) };
@@ -296,7 +304,10 @@ mod procs {
         }
     }
 
+    /// Writes some bytes to the stream, returning the number of bytes written.
     pub extern "C" fn write_proc<S>(file: *mut AiFile, buffer: *const c_char, size: size_t, count: size_t) -> size_t where S: IOStream {
+        c_assert!(!buffer.is_null());
+
         let mut stream: &mut S = user_data!(file);
 
         let buffer = unsafe { slice::from_raw_parts(buffer as *const u8, size as usize * count as usize) };
@@ -309,6 +320,7 @@ mod procs {
         }
     }
 
+    /// Gets the current position of the stream
     pub extern "C" fn tell_proc<S>(file: *mut AiFile) -> size_t where S: IOStream {
         let mut stream: &mut S = user_data!(file);
 
@@ -320,25 +332,30 @@ mod procs {
         }
     }
 
+    /// Determine the overall length of the stream by seeking to the end and getting the position there.
     pub extern "C" fn tell_size_proc<S>(file: *mut AiFile) -> size_t where S: IOStream {
         let mut stream: &mut S = user_data!(file);
 
+        // Store current position
         let cur = match stream.seek(SeekFrom::Current(0)) {
             Ok(pos) => pos,
             Err(err) => c_abort!("Failed to get stream size: {}", err),
         };
 
+        // Seek to the end to get total size
         let size = match stream.seek(SeekFrom::End(0)) {
             Ok(pos) => pos,
             Err(err) => c_abort!("Failed to get stream size: {}", err),
         };
 
+        // Return the stream position back to the original
         match stream.seek(SeekFrom::Start(cur)) {
             Ok(_) => size as size_t,
             Err(err) => c_abort!("Failed to get stream size: {}", err),
         }
     }
 
+    /// Seeks to a position in the stream. `S` must be `Seek`, so this is easy.
     pub extern "C" fn seek_proc<S>(file: *mut AiFile, pos: size_t, origin: c_int) -> c_int where S: IOStream {
         let mut stream: &mut S = user_data!(file);
 
@@ -349,9 +366,11 @@ mod procs {
             _ => c_abort!("Invalid Seek origin"),
         };
 
+        // This procedure allows returning success and failure values
         if stream.seek(origin).is_ok() { ffi::AI_SUCCESS } else { ffi::AI_FAILURE }
     }
 
+    /// Simply flushes the stream
     pub extern "C" fn flush_proc<S>(file: *mut AiFile) where S: IOStream {
         let mut stream: &mut S = user_data!(file);
 
