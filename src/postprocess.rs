@@ -61,11 +61,7 @@ macro_rules! impl_builder_effect {
     ($effect:ident, $name:ident) => {
         #[inline(always)]
         pub fn $name(mut self, enable: bool) -> Self {
-            if enable {
-                self.effects.insert($effect);
-            } else {
-                self.effects.remove($effect);
-            }
+            self.effects.set($effect, enable);
 
             self
         }

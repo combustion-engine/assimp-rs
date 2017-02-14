@@ -4,7 +4,7 @@ name = "assimp"
 version = "0.1.0"
 
 [dependencies]
-bitflags = "0.7.0"
+bitflags = "0.8.0"
 enum_primitive = "0.1.0"
 lazy_static = "0.2.2"
 libc = "0.2.17"
@@ -14,9 +14,6 @@ vec_map = "0.6.0"
 [dependencies.assimp-sys]
 git = "https://github.com/combustion-engine/assimp-sys"
 optional = true
-
-[dependencies.lazy]
-git = "https://github.com/combustion-engine/lazy"
 
 [dependencies.nalgebra]
 git = "https://github.com/combustion-engine/nalgebra"
