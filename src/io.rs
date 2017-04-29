@@ -63,7 +63,7 @@ pub struct CallbackIOHandler<S: IOStream> {
 
 impl<S: IOStream> CallbackIOHandler<S> {
     pub fn new<F>(cb: F) -> CallbackIOHandler<S> where F: FnMut(&Path) -> io::Result<S> + 'static {
-        CallbackIOHandler { callback: Mutex::new(box cb) }
+        CallbackIOHandler { callback: Mutex::new(Box::new(cb)) }
     }
 }
 
@@ -115,7 +115,7 @@ impl<S, H> CustomIO<S, H> where S: IOStream, H: IOHandler<S> {
             io: AiFileIO {
                 open: procs::open_proc::<S, H>,
                 close: procs::close_proc::<S, H>,
-                user_data: Box::into_raw(box handler) as AiUserData,
+                user_data: Box::into_raw(Box::new(handler)) as AiUserData,
             },
             _types: PhantomData,
         }
@@ -167,15 +167,15 @@ mod procs {
             return ptr::null_mut();
         };
 
-        Box::into_raw(box AiFile {
-            user_data: Box::into_raw(box stream) as AiUserData,
+        Box::into_raw(Box::new(AiFile {
+            user_data: Box::into_raw(Box::new(stream)) as AiUserData,
             read: read_proc::<S>,
             write: write_proc::<S>,
             tell: tell_proc::<S>,
             size: tell_size_proc::<S>,
             seek: seek_proc::<S>,
             flush: flush_proc::<S>,
-        })
+        }))
     }
 
     /// Closes a stream by unboxing it and passing it to the handler's close function, which usually just drops it

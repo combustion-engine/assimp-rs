@@ -63,8 +63,8 @@ impl<'a> Bone<'a> {
 
     /// Returns an iterator to the vertex weights
     #[inline]
-    pub fn weights(&self) -> impl Iterator<Item = VertexWeight<'a>> {
-        self.raw_weights().iter().map(VertexWeight::from_raw)
+    pub fn weights(&self) -> Box<Iterator<Item=VertexWeight<'a>> + 'a> {
+        Box::new(self.raw_weights().iter().map(VertexWeight::from_raw))
     }
 
     /// Get a reference to the offset matrix of the bone

@@ -35,15 +35,15 @@ impl<'a> FromRaw<'a, Material<'a>> for Material<'a> {
 }
 
 impl<'a> Material<'a> {
-    pub fn properties(&self) -> Option<impl Iterator<Item = MaterialProperty<'a>>> {
+    pub fn properties(&self) -> Option<Box<Iterator<Item=MaterialProperty<'a>>>> {
         if self.raw.num_properties == 0 || self.raw.properties.is_null() || self.raw.num_allocated == 0 {
             None
         } else {
-            Some(unsafe {
+            Some(Box::new(unsafe {
                 slice::from_raw_parts(self.raw.properties, self.raw.num_properties as usize)
                     .iter()
                     .map(MaterialProperty::from_raw)
-            })
+            }))
         }
     }
 }

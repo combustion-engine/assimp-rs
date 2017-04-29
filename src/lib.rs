@@ -1,4 +1,3 @@
-#![feature(conservative_impl_trait, box_syntax)]
 #![allow(dead_code, unknown_lints, inline_always, not_unsafe_ptr_arg_deref)]
 
 extern crate libc;

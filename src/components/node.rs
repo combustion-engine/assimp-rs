@@ -52,11 +52,11 @@ impl<'a> Node<'a> {
     });
 
     /// Maps the mesh indices of this node to the meshes in a scene.
-    pub fn meshes_from_scene(&self, scene: &'a Scene<'a>) -> Option<impl Iterator<Item = Mesh<'a>> + 'a> {
+    pub fn meshes_from_scene(&self, scene: &'a Scene<'a>) -> Option<Box<Iterator<Item=Mesh<'a>> + 'a>> {
         if let Some(mesh_indices) = self.meshes() {
-            Some(mesh_indices
+            Some(Box::new(mesh_indices
                 .iter()
-                .filter_map(move |index| scene.mesh(*index as usize)))
+                .filter_map(move |index| scene.mesh(*index as usize))))
         } else {
             None
         }

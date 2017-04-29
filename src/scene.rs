@@ -33,14 +33,14 @@ bitflags! {
 
 macro_rules! impl_scene_iterator {
     ($field:ident, $num_field:ident, $t:ident) => {
-        pub fn $field(&self) -> Option<impl Iterator<Item = $t<'a>>> {
+        pub fn $field(&self) -> Option<Box<Iterator<Item = $t<'a>>>> {
             let scene: &ffi::AiScene = self.raw_scene();
             if scene.$field.is_null() || scene.$num_field == 0 { None } else {
-                Some(unsafe {
+                Some(Box::new(unsafe {
                     slice::from_raw_parts(scene.$field, scene.$num_field as usize)
                     .iter()
                     .map(|v| $t::from_raw(v))
-                })
+                }))
             }
         }
     }
